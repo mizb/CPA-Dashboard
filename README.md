@@ -2,7 +2,7 @@
 
 CLIProxyAPI 控制面板 - 服务管理与账户监控 Web 界面。
 
-## 功能
+## 功能概览
 
 ### 服务控制
 - 启动 / 停止 / 重启 CLIProxyAPI 服务
@@ -11,15 +11,17 @@ CLIProxyAPI 控制面板 - 服务管理与账户监控 Web 界面。
 - 清除日志文件
 
 ### 账户管理
-- 显示所有账户列表
-- 显示账户类型（antigravity/gemini/claude/codex 等）
-- 显示会员等级（ULTRA/PRO/FREE）
-- 显示每个模型的配额百分比及重置倒计时
+- 显示所有账户列表（Antigravity、Gemini、Claude、Codex、Qwen、iFlow、Kimi、AI Studio、Vertex 等）
+- 显示会员等级（ULTRA/PRO/FREE）及账户状态（活跃 / 需要重新登录）
+- 显示每个模型的配额百分比及重置倒计时（Antigravity 实时配额）；其他类型显示静态支持的模型列表
 - 配额缓存持久化（重启后保留）
-- 单个账户配额刷新
-- 批量并行刷新所有账户配额（并行度 4）
-- 按类型/会员等级筛选
-- **添加账户**：通过 OAuth 登录添加新账户（支持 Antigravity/Gemini/Codex/Claude/Qwen/iFlow）
+- **刷新配额**：单个账户刷新 / 批量并行刷新所有账户（并行度 4）；刷新时会校验账号是否仍有效
+- **Codex 鉴权**：刷新 Codex 账户时除 OAuth 刷新外，会请求 Codex Models API；若返回 401 则标记为「需要重新登录」，更准确
+- **筛选**：
+  - **类型**：全部、Antigravity、Gemini、Claude、Codex、ULTRA、PRO
+  - **状态**：可勾选「仅显示需要重新登录的账户」，与类型组合（如：Codex + 仅显示需要重新登录 → 只显示需重新登录的 Codex 账户）
+- **批量删除**：勾选「仅显示需要重新登录的账户」后，显示「批量删除需要重新登录的账户」按钮，带二次确认，可一键删除当前列表中的失效账户
+- **添加账户**：通过 OAuth 登录添加新账户（支持 Antigravity / Gemini / Codex / Claude / Qwen / iFlow / Kimi）
 - **删除账户**：删除指定账户（带确认对话框）
 
 ## 安装
@@ -37,9 +39,11 @@ python app.py
 
 ### 方式二：通过启动脚本
 ```bash
-# 在 CPA-Dashboard 目录下
+# macOS / 通用
 ./start.sh
 
+# Linux（优先使用 $HOME/cliproxyapi，可设置 CLIPROXYAPI_DIR 覆盖）
+./start-linux.sh
 ```
 
 默认访问 http://127.0.0.1:5000
@@ -51,6 +55,7 @@ python app.py
 - `auth-dir` - 认证文件目录
 
 环境变量：
+
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
 | `CPA_CONFIG_PATH` | config.yaml 绝对路径 | 自动查找 |
@@ -69,49 +74,47 @@ python app.py
 
 ## 界面说明
 
+### 基本界面
+
+![基本界面](pics/基本界面.png)
+
+顶部导航：**服务控制**、**账户管理**、**使用说明**。账户管理页包含统计概览、类型/状态筛选、账户卡片与操作按钮。
+
 ### 服务控制
 
 ![服务控制](pics/P1.png)
 
-服务控制页面提供以下功能：
-
-- **服务状态**：实时显示 CLIProxyAPI 服务的运行状态
-  - 绿色表示服务正在运行，红色表示服务已停止
-  - 显示进程 PID、服务目录、日志文件路径等详细信息
-- **服务控制**：通过按钮一键操作
-  - 🟢 启动服务 - 启动 CLIProxyAPI
-  - 🟠 停止服务 - 停止运行中的服务
-  - 🔵 重启服务 - 重新启动服务
-- **运行日志**：查看服务运行日志
-  - 支持自动刷新（开关控制）
-  - 手动刷新、跳转底部、清除日志
+- **服务状态**：实时显示 CLIProxyAPI 运行状态（绿色=运行，红色=停止），含 PID、服务目录、日志路径
+- **服务控制**：🟢 启动 / 🟠 停止 / 🔵 重启
+- **运行日志**：自动刷新开关、手动刷新、跳转底部、清除日志
 
 ### 账户管理
 
 ![账户管理](pics/P2.png)
 
-账户管理页面提供以下功能：
+- **统计概览**：总账户数、Antigravity 数、ULTRA/PRO 会员数
+- **类型筛选**：全部、Antigravity、Gemini、Claude、Codex、ULTRA、PRO
+- **状态筛选**：勾选「⚠️ 仅显示需要重新登录的账户」可与类型组合；勾选后显示「批量删除需要重新登录的账户 (N)」按钮
+- **账户卡片**：邮箱、类型标签、会员等级、状态（活跃 / 需要重新登录）、配额信息（或静态模型列表）、刷新 / 删除按钮
 
-- **统计概览**：顶部显示账户统计信息
-  - 总账户数、各类型账户数量
-  - ULTRA/PRO 会员数量统计
-- **筛选功能**：按条件筛选账户
-  - 按类型：全部、Antigravity、Gemini、Claude、Codex
-  - 按等级：ULTRA、PRO
-- **账户卡片**：每个账户显示为一张卡片
-  - 账户邮箱、类型标签、会员等级
-  - 账户状态（活跃/沉默）
-  - 配额信息：各模型的使用百分比及重置倒计时
-- **操作按钮**：
-  - 添加账户 - 通过 OAuth 登录添加新账户
-  - 刷新列表 - 重新加载账户列表
-  - 刷新所有配额 - 批量并行刷新所有账户的配额信息
-  - 单个账户刷新 - 点击卡片上的刷新按钮
-  - 删除账户 - 点击卡片上的删除按钮（带确认对话框）
+### 刷新配额与鉴别需要重新登录
 
-### 添加账户
+![刷新配额以及鉴别需要重新登录账户](pics/刷新配额以及鉴别需要重新登录账户.png)
 
-添加账户支持以下 Provider：
+- 点击「刷新所有配额」会批量刷新并校验各账号 token；Codex 会额外请求 Models API，401 则标记为需要重新登录
+- 勾选「仅显示需要重新登录的账户」可查看并批量删除失效账号（带二次确认）
+
+### 添加账户（OAuth 登录）
+
+![登录账户1](pics/登录账户1.png)
+
+选择 Provider 后启动 OAuth，复制链接在浏览器中完成认证；部分流程需在终端按提示输入（如项目 ID、回调 URL 等）。
+
+![登录账户2](pics/登录账户2.png)
+
+认证成功后账户会出现在列表中，可在此处刷新配额或删除。
+
+### 添加账户支持的 Provider
 
 | Provider | 说明 | 回调端口 |
 |----------|------|----------|
@@ -121,33 +124,23 @@ python app.py
 | Claude | Anthropic Claude 账户 | 54545 |
 | Qwen | 通义千问账户 | 设备码模式 |
 | iFlow | iFlow 账户 | 55998 |
+| Kimi | Moonshot Kimi 账户 | 设备码模式 |
 
-**远程服务器使用提示**：
-
-如果 CLIProxyAPI 运行在远程服务器上，需要设置 SSH 端口转发：
+**远程服务器**：需 SSH 端口转发后再在本地浏览器完成 OAuth，例如：
 
 ```bash
-# 以 Antigravity 为例
 ssh -L 51121:localhost:51121 user@server
 ```
 
-然后在本地浏览器中完成 OAuth 认证。
-
-### 使用说明
+### 使用说明（API 示例）
 
 ![使用说明](pics/P3.png)
 
-使用说明页面展示 API 连接信息：
-
-- **连接信息**：
-  - BASE URL - API 服务地址
-  - API KEY - 当前使用的密钥
-  - 可用 KEYS - 可用密钥数量
-- **所有 API KEYS**：列出所有可用的 API 密钥，点击复制
-- **cURL 命令**：提供现成的 cURL 命令示例，可直接复制使用
+- **连接信息**：Base URL、API Key、可用 Keys 数量
+- **所有 API Keys**：列表与复制
+- **示例**：cURL、Python requests、OpenAI SDK、流式请求等，可直接复制使用
 
 ## 注意
 
-- 配额查询目前仅支持 Antigravity 类型账户（实时配额 + 模型别名与 CLIProxyAPI 一致）
-- 其他类型账户（Gemini/Codex/Claude/Qwen/iFlow/AI Studio/Vertex）显示静态支持的模型列表，与 CLIProxyAPI `internal/registry/model_definitions_static_data.go` 保持同步
-- 服务控制功能需要正确配置 `CPA_SERVICE_DIR`
+- **配额**：仅 Antigravity 支持实时配额（模型别名与 CLIProxyAPI 一致）；其余类型（Gemini/Codex/Claude/Qwen/iFlow/Kimi/AI Studio/Vertex）显示静态模型列表，与 CLIProxyAPI `internal/registry/model_definitions_static_data.go` 同步
+- **服务控制**：需正确配置 `CPA_SERVICE_DIR`（或通过 `start-linux.sh` / 环境变量指定）
